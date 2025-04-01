@@ -12,7 +12,6 @@ import {
 import { useRef, useState, React } from "react";
 import Modal from "@mui/material/Modal";
 
-const center = { lat: 37.782, lng: -122.447 };
 const dayMode = [];
 const nightMode = [
   { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
@@ -24,13 +23,13 @@ const nightMode = [
 const library = ["places", "visualization", "drawing"];
 
 function App() {
-  console.log("fei");
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_API_URL,
     libraries: library,
   });
 
   const [open, setOpen] = useState(false);
+  const [center, setCenter] = useState({ lat: 37.79824, lng: -122.421884 });
   const [key, setKey] = useState(Date.now());
   const heatmapRef = useRef(null);
   const [visualizationType, setVisualizationType] = useState("markers");
@@ -55,6 +54,8 @@ function App() {
   const [drawingMode, setDrawingMode] = useState(null);
   const [drawingKey, setDrawingKey] = useState(0);
   const drawingManagerRef = useRef(null);
+  const mapRef = useRef(null);
+  const autocompleteRef = useRef(null);
   const [territorynum, setTerritorynum] = useState(2);
   const [hoveredTerritory, setHoveredTerritory] = useState(null);
 
@@ -125,6 +126,24 @@ function App() {
     },
   ];
 
+  const onPlaceSelected = () => {
+    if (autocompleteRef.current) {
+      const place = autocompleteRef.current.getPlace();
+      if (place.geometry && place.geometry.location) {
+        const newLocation = {
+          lat: place.geometry.location.lat(),
+          lng: place.geometry.location.lng(),
+        };
+
+        setCenter(newLocation); // Update state
+
+        if (mapRef.current) {
+          mapRef.current.setCenter(newLocation); // Move map to new location
+        }
+      }
+    }
+  };
+
   const headMapToogle = () => {
     setVisualizationType((prev) =>
       prev === "heatmap" ? "markers" : "heatmap"
@@ -191,18 +210,22 @@ function App() {
 
   return (
     <>
-      <Autocomplete>
+      <Autocomplete
+        onLoad={(autocomplete) => (autocompleteRef.current = autocomplete)}
+        onPlaceChanged={onPlaceSelected}
+      >
         <input
           type="text"
           placeholder="Enter your text..."
           className="absolute left-5 top-5 z-10 w-[60%] px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
         />
       </Autocomplete>
+
       {hoveredTerritory && (
         <div
           style={{
             position: "absolute",
-            top: "10px",
+            top: "100px",
             left: "10px",
             backgroundColor: "white",
             padding: "5px 10px",
@@ -225,7 +248,7 @@ function App() {
         <GoogleMap
           center={center}
           mapContainerStyle={{ width: "100%", height: "100%" }}
-          zoom={15}
+          zoom={14}
           options={{
             zoomControl: false,
             fullscreenControl: false,
@@ -234,7 +257,9 @@ function App() {
             styles: theme === "night" ? nightMode : dayMode,
           }}
           mapTypeId={mapType}
+          onLoad={(map) => (mapRef.current = map)}
         >
+          <Marker position={center} />
           <DrawingManager
             ref={drawingManagerRef}
             key={drawingKey}
