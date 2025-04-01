@@ -279,7 +279,7 @@ function App() {
                       style={{
                         fontSize: "14px",
                         fontWeight: "bold",
-                        color: "#808080",
+                        color: "red",
                       }}
                     >
                       {territory.name}
